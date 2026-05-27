@@ -6,7 +6,7 @@ FC Barcelona 데일리 인포 봇 — 매일 KST 08:00 데일리 브리핑, 경�
 - Next.js 15 (App Router) on Vercel Hobby
 - Vercel Cron + Upstash Redis (저장)
 - football-data.org (라리가/챔스 일정·순위·결과·득점)
-- Claude `claude-haiku-4-5` (요약, 프롬프트 캐싱)
+- Google Gemini `gemini-2.0-flash` (요약, 무료 티어)
 - Resend (메일)
 
 **무료 티어 제약**: football-data.org 무료 플랜은 코파 델 레이(CDR) 미제공. 라인업·통계·부상자도 없음.

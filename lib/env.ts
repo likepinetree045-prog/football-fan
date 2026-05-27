@@ -1,6 +1,6 @@
 export const env = {
   footballToken: process.env.FOOTBALLDATA_TOKEN ?? "",
-  anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
+  geminiKey: process.env.GEMINI_API_KEY ?? "",
   resendKey: process.env.RESEND_API_KEY ?? "",
   resendFrom: process.env.RESEND_FROM ?? "Barca Daily <onboarding@resend.dev>",
   recipient: process.env.RECIPIENT_EMAIL ?? "",
@@ -14,5 +14,5 @@ export const env = {
   uclCode: process.env.UCL_CODE ?? "CL",
   commitSha: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local",
   vercelEnv: process.env.VERCEL_ENV ?? "development",
-  model: "claude-haiku-4-5",
+  model: "gemini-2.0-flash",
 };
