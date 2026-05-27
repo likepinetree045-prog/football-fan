@@ -64,8 +64,18 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({
-    tokenLength: env.footballToken.length,
-    tokenPrefix: env.footballToken.slice(0, 6),
+    env: {
+      footballToken: maskEnv(env.footballToken),
+      geminiKey: maskEnv(env.geminiKey),
+      resendKey: maskEnv(env.resendKey),
+      recipient: env.recipient || "(missing)",
+      upstashUrl: env.upstashUrl ? "set" : "(missing)",
+    },
     results,
   });
+}
+
+function maskEnv(v: string): string {
+  if (!v) return "(MISSING)";
+  return `len=${v.length} prefix=${v.slice(0, 6)}`;
 }
