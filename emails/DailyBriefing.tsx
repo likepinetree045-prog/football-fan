@@ -10,19 +10,17 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-import type { Fixture, Injury, StandingRow } from "@/lib/football";
-import { formatKST } from "@/lib/football";
+import type { Match, StandingRow } from "@/lib/football";
+import { formatKST, competitionLabel } from "@/lib/football";
 import type { NewsItem } from "@/lib/rss";
 import type { FooterMeta } from "@/lib/debug";
 import { footerText } from "@/lib/debug";
 
 export interface DailyProps {
   summary: string;
-  fixtures: Fixture[];
+  fixtures: Match[];
   standings: StandingRow[];
-  uclFixtures: Fixture[];
-  copaFixtures: Fixture[];
-  injuries: Injury[];
+  uclFixtures: Match[];
   news: NewsItem[];
   meta: FooterMeta;
 }
@@ -34,15 +32,15 @@ const cardStyle = {
   marginBottom: 16,
 };
 
-export default function DailyBriefing(props: DailyProps) {
-  const { summary, fixtures, standings, uclFixtures, copaFixtures, injuries, news, meta } =
-    props;
+const BARCA_ID = 81;
+const RIVAL_NAMES = ["Real Madrid", "Real Madrid CF", "Atlético de Madrid", "Atletico Madrid", "Girona FC"];
 
-  const barcaIdx = standings.findIndex((s) => s.team.id === 529);
+export default function DailyBriefing(props: DailyProps) {
+  const { summary, fixtures, standings, uclFixtures, news, meta } = props;
+
+  const barcaIdx = standings.findIndex((s) => s.team.id === BARCA_ID);
   const top3 = standings.slice(0, 3);
-  const rivals = standings.filter((s) =>
-    ["Real Madrid", "Atletico Madrid", "Girona"].includes(s.team.name),
-  );
+  const rivals = standings.filter((s) => RIVAL_NAMES.some((n) => s.team.name.includes(n)));
 
   return (
     <Html>
@@ -64,10 +62,10 @@ export default function DailyBriefing(props: DailyProps) {
               <Text style={{ color: "#888" }}>예정된 경기 없음</Text>
             ) : (
               fixtures.map((f) => (
-                <Text key={f.fixture.id} style={{ margin: "4px 0" }}>
-                  <strong>{formatKST(f.fixture.date)}</strong> · {f.league.name} ·{" "}
-                  {f.teams.home.id === 529 ? "vs " : "@ "}
-                  {f.teams.home.id === 529 ? f.teams.away.name : f.teams.home.name}
+                <Text key={f.id} style={{ margin: "4px 0" }}>
+                  <strong>{formatKST(f.utcDate)}</strong> · {competitionLabel(f.competition.code)} ·{" "}
+                  {f.homeTeam.id === BARCA_ID ? "vs " : "@ "}
+                  {f.homeTeam.id === BARCA_ID ? f.awayTeam.name : f.homeTeam.name}
                 </Text>
               ))
             )}
@@ -79,16 +77,15 @@ export default function DailyBriefing(props: DailyProps) {
             </Heading>
             {barcaIdx >= 0 && (
               <Text style={{ margin: "4px 0" }}>
-                바르샤: <strong>{standings[barcaIdx].rank}위</strong> ·{" "}
-                {standings[barcaIdx].points}점 (
-                {standings[barcaIdx].all.win}승 {standings[barcaIdx].all.draw}무{" "}
-                {standings[barcaIdx].all.lose}패)
+                바르샤: <strong>{standings[barcaIdx].position}위</strong> ·{" "}
+                {standings[barcaIdx].points}점 ({standings[barcaIdx].won}승{" "}
+                {standings[barcaIdx].draw}무 {standings[barcaIdx].lost}패)
               </Text>
             )}
             <Hr style={{ margin: "8px 0" }} />
             {top3.map((s) => (
               <Text key={s.team.id} style={{ margin: "2px 0" }}>
-                {s.rank}. {s.team.name} — {s.points}점
+                {s.position}. {s.team.name} — {s.points}점
               </Text>
             ))}
             {rivals.length > 0 && <Hr style={{ margin: "8px 0" }} />}
@@ -109,36 +106,9 @@ export default function DailyBriefing(props: DailyProps) {
                 ⭐ 챔스
               </Heading>
               {uclFixtures.map((f) => (
-                <Text key={f.fixture.id} style={{ margin: "4px 0" }}>
-                  {f.league.round} · {formatKST(f.fixture.date)} ·{" "}
-                  {f.teams.home.id === 529 ? f.teams.away.name : f.teams.home.name}
-                </Text>
-              ))}
-            </Section>
-          )}
-
-          {copaFixtures.length > 0 && (
-            <Section style={cardStyle}>
-              <Heading as="h2" style={{ fontSize: 16 }}>
-                🏅 코파 델 레이
-              </Heading>
-              {copaFixtures.map((f) => (
-                <Text key={f.fixture.id} style={{ margin: "4px 0" }}>
-                  {f.league.round} · {formatKST(f.fixture.date)} ·{" "}
-                  {f.teams.home.id === 529 ? f.teams.away.name : f.teams.home.name}
-                </Text>
-              ))}
-            </Section>
-          )}
-
-          {injuries.length > 0 && (
-            <Section style={cardStyle}>
-              <Heading as="h2" style={{ fontSize: 16 }}>
-                🏥 부상자 / 출장 정지
-              </Heading>
-              {injuries.slice(0, 10).map((i, idx) => (
-                <Text key={`${i.player.id}-${idx}`} style={{ margin: "2px 0" }}>
-                  {i.player.name} — {i.type} ({i.reason})
+                <Text key={f.id} style={{ margin: "4px 0" }}>
+                  {f.stage} · {formatKST(f.utcDate)} ·{" "}
+                  {f.homeTeam.id === BARCA_ID ? f.awayTeam.name : f.homeTeam.name}
                 </Text>
               ))}
             </Section>
@@ -147,7 +117,7 @@ export default function DailyBriefing(props: DailyProps) {
           {news.length > 0 && (
             <Section style={cardStyle}>
               <Heading as="h2" style={{ fontSize: 16 }}>
-                📰 선수 소식 / 헤드라인
+                📰 헤드라인 / 뉴스
               </Heading>
               {news.map((n, idx) => (
                 <Text key={idx} style={{ margin: "4px 0" }}>

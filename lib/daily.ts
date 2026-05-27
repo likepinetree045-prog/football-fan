@@ -2,10 +2,12 @@ import { render } from "@react-email/render";
 import DailyBriefing from "@/emails/DailyBriefing";
 import { env } from "./env";
 import {
-  getFixturesNext,
+  getUpcomingFixtures,
   getLaLigaStandings,
-  getInjuries,
   formatKST,
+  competitionLabel,
+  type Match,
+  type StandingRow,
 } from "./football";
 import { getNews } from "./rss";
 import { summarize } from "./claude";
@@ -14,23 +16,15 @@ import { makeFooterMeta } from "./debug";
 import { makeReportId, saveReport } from "./kv";
 
 export async function runDaily(): Promise<{ ok: true; emailId: string }> {
-  const [fixtures, standings, injuries, news] = await Promise.all([
-    getFixturesNext(7),
+  const [fixtures, standings, news] = await Promise.all([
+    getUpcomingFixtures(7),
     getLaLigaStandings(),
-    getInjuries(),
     getNews(8),
   ]);
 
-  const uclFixtures = fixtures.filter((f) => f.league.id === env.uclId);
-  const copaFixtures = fixtures.filter((f) => f.league.id === env.copaId);
+  const uclFixtures = fixtures.filter((f) => f.competition.code === env.uclCode);
 
-  const summaryInput = buildSummaryInput({
-    fixtures,
-    standings,
-    injuries,
-    news,
-  });
-
+  const summaryInput = buildSummaryInput({ fixtures, standings, news });
   const summary = await summarize({ data: summaryInput, kind: "daily" });
   const meta = makeFooterMeta("daily");
 
@@ -40,8 +34,6 @@ export async function runDaily(): Promise<{ ok: true; emailId: string }> {
       fixtures,
       standings,
       uclFixtures,
-      copaFixtures,
-      injuries,
       news,
       meta,
     }),
@@ -55,7 +47,7 @@ export async function runDaily(): Promise<{ ok: true; emailId: string }> {
     id: makeReportId("daily", today),
     type: "daily",
     date: today,
-    raw: { fixtures, standings, injuries, news },
+    raw: { fixtures, standings, news },
     summary,
     createdAt: meta.fetchedAt,
   });
@@ -64,36 +56,30 @@ export async function runDaily(): Promise<{ ok: true; emailId: string }> {
 }
 
 function buildSummaryInput(args: {
-  fixtures: Awaited<ReturnType<typeof getFixturesNext>>;
-  standings: Awaited<ReturnType<typeof getLaLigaStandings>>;
-  injuries: Awaited<ReturnType<typeof getInjuries>>;
+  fixtures: Match[];
+  standings: StandingRow[];
   news: Awaited<ReturnType<typeof getNews>>;
 }): string {
-  const { fixtures, standings, injuries, news } = args;
+  const { fixtures, standings, news } = args;
   const fixturesText = fixtures.length
     ? fixtures
         .map(
           (f) =>
-            `- ${formatKST(f.fixture.date)} · ${f.league.name} · ${f.teams.home.name} vs ${f.teams.away.name}`,
+            `- ${formatKST(f.utcDate)} · ${competitionLabel(f.competition.code)} · ${f.homeTeam.name} vs ${f.awayTeam.name}`,
         )
         .join("\n")
     : "(예정 경기 없음)";
 
   const barca = standings.find((s) => s.team.id === env.teamId);
-  const real = standings.find((s) => s.team.name === "Real Madrid");
-  const atletico = standings.find((s) => s.team.name === "Atletico Madrid");
+  const real = standings.find((s) => /Real Madrid/i.test(s.team.name));
+  const atletico = standings.find(
+    (s) => /Atl[eé]tico/i.test(s.team.name) && /Madrid/i.test(s.team.name),
+  );
   const standingsText = barca
-    ? `바르샤 ${barca.rank}위 ${barca.points}점 (${barca.all.win}승 ${barca.all.draw}무 ${barca.all.lose}패). ` +
-      (real ? `레알 ${real.rank}위 ${real.points}점. ` : "") +
-      (atletico ? `아틀레티코 ${atletico.rank}위 ${atletico.points}점.` : "")
+    ? `바르샤 ${barca.position}위 ${barca.points}점 (${barca.won}승 ${barca.draw}무 ${barca.lost}패). ` +
+      (real ? `레알 ${real.position}위 ${real.points}점. ` : "") +
+      (atletico ? `아틀레티코 ${atletico.position}위 ${atletico.points}점.` : "")
     : "(순위 정보 없음)";
-
-  const injuriesText = injuries.length
-    ? injuries
-        .slice(0, 8)
-        .map((i) => `- ${i.player.name}: ${i.type} (${i.reason})`)
-        .join("\n")
-    : "(부상자 없음)";
 
   const newsText = news.length
     ? news
@@ -105,7 +91,6 @@ function buildSummaryInput(args: {
   return [
     `[향후 7일 경기]\n${fixturesText}`,
     `[라리가 순위]\n${standingsText}`,
-    `[부상자]\n${injuriesText}`,
     `[헤드라인]\n${newsText}`,
   ].join("\n\n");
 }
