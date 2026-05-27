@@ -14,5 +14,5 @@ export const env = {
   uclCode: process.env.UCL_CODE ?? "CL",
   commitSha: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "local",
   vercelEnv: process.env.VERCEL_ENV ?? "development",
-  model: "gemini-2.0-flash",
+  model: process.env.GEMINI_MODEL ?? "gemini-2.5-flash",
 };
