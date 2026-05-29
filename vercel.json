@@ -1,9 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    { "path": "/api/daily", "schedule": "0 23 * * *" },
-    { "path": "/api/post-match", "schedule": "0 1 * * *" }
-  ],
+  "crons": [],
   "functions": {
     "app/api/daily/route.ts": { "maxDuration": 60 },
     "app/api/post-match/route.ts": { "maxDuration": 60 },
